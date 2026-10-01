@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+import re
 
 import aiohttp
 from homeassistant import config_entries
@@ -19,7 +21,8 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 )
 import voluptuous as vol
 
-from custom_components.crowdsec.const import DOMAIN
+import custom_components.crowdsec
+from custom_components.crowdsec.const import DOMAIN, USER_AGENT
 
 from .conftest import ENTRY_DATA, MACHINE, URL, load, mock_api
 
@@ -104,6 +107,27 @@ async def test_only_local_origins_are_requested(
     assert {c[1].query["origin"] for c in alert_calls} == {"crowdsec", "cscli"}
     assert all("origin" in c[1].query for c in alert_calls)
     assert all(c[3]["Authorization"] == "Bearer jwt-token" for c in alert_calls)
+
+
+async def test_user_agent_is_name_slash_version(
+    hass: HomeAssistant, config_entry, aioclient_mock
+) -> None:
+    """Die LAPI lehnt Logins mit dem Standard-User-Agent von Home Assistant ab (401)."""
+    mock_api(aioclient_mock)
+    await _setup(hass, config_entry)
+    calls = _calls(aioclient_mock, "/v1/watchers/login") + _calls(
+        aioclient_mock, "/v1/alerts", "GET"
+    )
+    assert len(calls) == 5
+    assert {c[3]["User-Agent"] for c in calls} == {USER_AGENT}
+    assert re.fullmatch(r"[\w.-]+/[\w.-]+", USER_AGENT)
+
+
+def test_user_agent_version_matches_manifest() -> None:
+    manifest = json.loads(
+        (Path(custom_components.crowdsec.__file__).parent / "manifest.json").read_text()
+    )
+    assert f"ha-crowdsec/{manifest['version']}" == USER_AGENT
 
 
 async def test_stats_polled_less_often(hass: HomeAssistant, config_entry, aioclient_mock) -> None:

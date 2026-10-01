@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 import aiohttp
 
 from .bans import parse_time
-from .const import DEFAULT_PORT
+from .const import DEFAULT_PORT, USER_AGENT
 
 TIMEOUT = aiohttp.ClientTimeout(total=15)
 # Token kurz vor Ablauf erneuern, damit kein Abruf mit einem toten Token startet.
@@ -65,6 +65,7 @@ class CrowdSecApi:
             async with self._session.post(
                 f"{self._base}/v1/watchers/login",
                 json={"machine_id": self._machine_id, "password": self._password},
+                headers={"User-Agent": USER_AGENT},
                 timeout=TIMEOUT,
             ) as resp:
                 if resp.status in (401, 403):
@@ -98,7 +99,7 @@ class CrowdSecApi:
                 async with self._session.request(
                     method,
                     f"{self._base}{path}",
-                    headers={"Authorization": f"Bearer {self._token}"},
+                    headers={"Authorization": f"Bearer {self._token}", "User-Agent": USER_AGENT},
                     timeout=TIMEOUT,
                     **kwargs,
                 ) as resp:
