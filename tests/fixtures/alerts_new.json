@@ -1,0 +1,98 @@
+[
+  {
+    "id": 170,
+    "scenario": "crowdsecurity/http-probing",
+    "created_at": "2026-10-01T14:01:00Z",
+    "machine_id": "caddy-agent",
+    "message": "Ip 192.0.2.77 performed 'crowdsecurity/http-probing'",
+    "source": {
+      "scope": "Ip",
+      "value": "192.0.2.77",
+      "ip": "192.0.2.77",
+      "cn": "DE",
+      "as_number": "3320",
+      "as_name": "Example ISP"
+    },
+    "events_count": 12,
+    "events": [],
+    "capacity": 10,
+    "leakspeed": "10s",
+    "decisions": [
+      {
+        "id": 555200,
+        "origin": "crowdsec",
+        "type": "ban",
+        "scope": "Ip",
+        "value": "192.0.2.77",
+        "duration": "3h59m",
+        "scenario": "crowdsecurity/http-probing",
+        "simulated": false
+      }
+    ],
+    "simulated": false
+  },
+  {
+    "id": 171,
+    "scenario": "crowdsecurity/http-sensitive-files",
+    "created_at": "2026-10-01T14:01:05Z",
+    "machine_id": "caddy-agent",
+    "message": "Ip 192.0.2.77 performed 'crowdsecurity/http-sensitive-files'",
+    "source": {
+      "scope": "Ip",
+      "value": "192.0.2.77",
+      "ip": "192.0.2.77",
+      "cn": "DE",
+      "as_number": "3320",
+      "as_name": "Example ISP"
+    },
+    "events_count": 12,
+    "events": [],
+    "capacity": 10,
+    "leakspeed": "10s",
+    "decisions": [
+      {
+        "id": 555201,
+        "origin": "crowdsec",
+        "type": "ban",
+        "scope": "Ip",
+        "value": "192.0.2.77",
+        "duration": "3h59m",
+        "scenario": "crowdsecurity/http-sensitive-files",
+        "simulated": false
+      }
+    ],
+    "simulated": false
+  },
+  {
+    "id": 172,
+    "scenario": "crowdsecurity/http-crawl-non_statics",
+    "created_at": "2026-10-01T14:01:30Z",
+    "machine_id": "caddy-agent",
+    "message": "Ip 192.0.2.88 performed 'crowdsecurity/http-crawl-non_statics'",
+    "source": {
+      "scope": "Ip",
+      "value": "192.0.2.88",
+      "ip": "192.0.2.88",
+      "cn": "FR",
+      "as_number": "3215",
+      "as_name": "Example Orange"
+    },
+    "events_count": 12,
+    "events": [],
+    "capacity": 10,
+    "leakspeed": "10s",
+    "decisions": [
+      {
+        "id": 555202,
+        "origin": "crowdsec",
+        "type": "ban",
+        "scope": "Ip",
+        "value": "192.0.2.88",
+        "duration": "3h59m",
+        "scenario": "crowdsecurity/http-crawl-non_statics",
+        "simulated": false
+      }
+    ],
+    "simulated": false
+  }
+]

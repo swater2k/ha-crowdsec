@@ -1,0 +1,158 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "CrowdSec",
+        "description": "Connect the CrowdSec Local API (LAPI). Create a dedicated machine for Home Assistant with `cscli machines add`, it must be validated.",
+        "data": {
+          "url": "LAPI URL",
+          "machine_id": "Machine ID",
+          "password": "Password",
+          "verify_ssl": "Verify SSL certificate"
+        },
+        "data_description": {
+          "url": "Address of the Local API, for example {example_url}. Without a scheme, http and port 8080 are assumed.",
+          "machine_id": "Name of the machine registered for Home Assistant. Only a machine (watcher) can read alerts and delete decisions, a bouncer key cannot.",
+          "password": "Stored in the config entry and hidden in diagnostics.",
+          "verify_ssl": "Only relevant for https. Turn off for self-signed certificates."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in again",
+        "description": "The LAPI rejected the stored password of machine {machine}. Check that the machine is validated (`cscli machines list`).",
+        "data": {
+          "password": "Password"
+        }
+      },
+      "reconfigure": {
+        "title": "CrowdSec",
+        "description": "Change the connection settings.",
+        "data": {
+          "url": "LAPI URL",
+          "machine_id": "Machine ID",
+          "password": "Password",
+          "verify_ssl": "Verify SSL certificate"
+        },
+        "data_description": {
+          "url": "Address of the Local API, for example {example_url}. Without a scheme, http and port 8080 are assumed.",
+          "machine_id": "Name of the machine registered for Home Assistant.",
+          "password": "Stored in the config entry and hidden in diagnostics.",
+          "verify_ssl": "Only relevant for https. Turn off for self-signed certificates."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "The LAPI is not reachable. Check address, port and firewall.",
+      "invalid_auth": "Machine ID or password rejected, or the machine is not validated yet.",
+      "invalid_response": "The LAPI answered with an error.",
+      "invalid_url": "This is not a valid address.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This machine is already configured.",
+      "reauth_successful": "Signed in again.",
+      "reconfigure_successful": "Reconfiguration successful.",
+      "different_machine": "The machine ID differs from the configured one."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "CrowdSec options",
+        "description": "Control functions are off by default.",
+        "data": {
+          "scan_interval": "Polling interval",
+          "control_unban": "Control: lift bans",
+          "control_ban": "Control: set bans"
+        },
+        "data_description": {
+          "scan_interval": "How often active bans are read. New bans are reported with this delay.",
+          "control_unban": "Enables the action to delete decisions by IP address or range.",
+          "control_ban": "Enables the action to add a manual ban."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "lapi_reachable": {
+        "name": "LAPI reachable"
+      }
+    },
+    "sensor": {
+      "active_bans": {
+        "name": "Active bans"
+      },
+      "alerts_24h": {
+        "name": "Alerts last 24 hours"
+      },
+      "bans_last_hour": {
+        "name": "Bans last hour"
+      },
+      "last_ban": {
+        "name": "Last ban"
+      }
+    },
+    "event": {
+      "new_ban": {
+        "name": "New ban",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "ban": "Ban"
+            }
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "control_disabled": {
+      "message": "This action is turned off in the options of {title}."
+    },
+    "entry_not_found": {
+      "message": "CrowdSec entry not found or not loaded."
+    },
+    "entry_ambiguous": {
+      "message": "Several CrowdSec instances are configured, choose one."
+    }
+  },
+  "services": {
+    "delete_decision": {
+      "name": "Delete decision",
+      "description": "Lifts bans. A single address also lifts ranges that contain it, like `cscli decisions delete --ip`. Returns the number of deleted decisions.",
+      "fields": {
+        "config_entry_id": {
+          "name": "CrowdSec instance",
+          "description": "Only needed if several instances are configured."
+        },
+        "ip": {
+          "name": "IP address or range",
+          "description": "Single address or range in CIDR notation."
+        }
+      }
+    },
+    "add_decision": {
+      "name": "Add decision",
+      "description": "Sets a manual ban. It appears as a new ban with origin cscli.",
+      "fields": {
+        "config_entry_id": {
+          "name": "CrowdSec instance",
+          "description": "Only needed if several instances are configured."
+        },
+        "ip": {
+          "name": "IP address or range",
+          "description": "Single address or range in CIDR notation."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "Go duration with the units ms, s, m and h, for example 4h or 90m. Days are not supported."
+        },
+        "reason": {
+          "name": "Reason",
+          "description": "Note stored with the alert."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+delete_decision:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: crowdsec
+    ip:
+      required: true
+      example: "203.0.113.7"
+      selector:
+        text:
+
+add_decision:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: crowdsec
+    ip:
+      required: true
+      example: "203.0.113.0/24"
+      selector:
+        text:
+    duration:
+      default: "4h"
+      example: "24h"
+      selector:
+        text:
+    reason:
+      default: "Home Assistant"
+      example: "Manual block"
+      selector:
+        text:

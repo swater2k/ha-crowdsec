@@ -1,0 +1,158 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "CrowdSec",
+        "description": "Die CrowdSec Local API (LAPI) verbinden. Lege dafür mit `cscli machines add` eine eigene Machine für Home Assistant an, sie muss validiert sein.",
+        "data": {
+          "url": "LAPI-URL",
+          "machine_id": "Machine-ID",
+          "password": "Passwort",
+          "verify_ssl": "SSL-Zertifikat prüfen"
+        },
+        "data_description": {
+          "url": "Adresse der Local API, z. B. {example_url}. Ohne Schema werden http und Port 8080 angenommen.",
+          "machine_id": "Name der für Home Assistant angelegten Machine. Nur eine Machine (Watcher) kann Alerts lesen und Decisions löschen, ein Bouncer-Schlüssel nicht.",
+          "password": "Wird im Konfigurationseintrag gespeichert und in der Diagnose geschwärzt.",
+          "verify_ssl": "Nur bei https relevant. Bei selbst signierten Zertifikaten ausschalten."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Erneut anmelden",
+        "description": "Die LAPI hat das gespeicherte Passwort der Machine {machine} abgelehnt. Prüfe, ob die Machine validiert ist (`cscli machines list`).",
+        "data": {
+          "password": "Passwort"
+        }
+      },
+      "reconfigure": {
+        "title": "CrowdSec",
+        "description": "Verbindungseinstellungen ändern.",
+        "data": {
+          "url": "LAPI-URL",
+          "machine_id": "Machine-ID",
+          "password": "Passwort",
+          "verify_ssl": "SSL-Zertifikat prüfen"
+        },
+        "data_description": {
+          "url": "Adresse der Local API, z. B. {example_url}. Ohne Schema werden http und Port 8080 angenommen.",
+          "machine_id": "Name der für Home Assistant angelegten Machine.",
+          "password": "Wird im Konfigurationseintrag gespeichert und in der Diagnose geschwärzt.",
+          "verify_ssl": "Nur bei https relevant. Bei selbst signierten Zertifikaten ausschalten."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Die LAPI ist nicht erreichbar. Prüfe Adresse, Port und Firewall.",
+      "invalid_auth": "Machine-ID oder Passwort abgelehnt, oder die Machine ist noch nicht validiert.",
+      "invalid_response": "Die LAPI hat mit einem Fehler geantwortet.",
+      "invalid_url": "Das ist keine gültige Adresse.",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "abort": {
+      "already_configured": "Diese Machine ist bereits eingerichtet.",
+      "reauth_successful": "Erneut angemeldet.",
+      "reconfigure_successful": "Neu konfiguriert.",
+      "different_machine": "Die Machine-ID weicht von der eingerichteten ab."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "CrowdSec-Optionen",
+        "description": "Steuerfunktionen sind standardmäßig aus.",
+        "data": {
+          "scan_interval": "Abfrageintervall",
+          "control_unban": "Steuerung: Sperren aufheben",
+          "control_ban": "Steuerung: Sperren setzen"
+        },
+        "data_description": {
+          "scan_interval": "Wie oft die aktiven Sperren gelesen werden. Neue Sperren werden mit dieser Verzögerung gemeldet.",
+          "control_unban": "Schaltet die Aktion frei, Decisions per IP-Adresse oder Bereich zu löschen.",
+          "control_ban": "Schaltet die Aktion frei, eine manuelle Sperre zu setzen."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "lapi_reachable": {
+        "name": "LAPI erreichbar"
+      }
+    },
+    "sensor": {
+      "active_bans": {
+        "name": "Aktive Sperren"
+      },
+      "alerts_24h": {
+        "name": "Alerts letzte 24 Stunden"
+      },
+      "bans_last_hour": {
+        "name": "Sperren letzte Stunde"
+      },
+      "last_ban": {
+        "name": "Letzte Sperre"
+      }
+    },
+    "event": {
+      "new_ban": {
+        "name": "Neue Sperre",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "ban": "Sperre"
+            }
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "control_disabled": {
+      "message": "Diese Aktion ist in den Optionen von {title} ausgeschaltet."
+    },
+    "entry_not_found": {
+      "message": "CrowdSec-Eintrag nicht gefunden oder nicht geladen."
+    },
+    "entry_ambiguous": {
+      "message": "Mehrere CrowdSec-Instanzen eingerichtet, bitte eine auswählen."
+    }
+  },
+  "services": {
+    "delete_decision": {
+      "name": "Decision löschen",
+      "description": "Hebt Sperren auf. Eine einzelne Adresse hebt auch Bereiche auf, die sie enthalten, wie `cscli decisions delete --ip`. Liefert die Anzahl gelöschter Decisions.",
+      "fields": {
+        "config_entry_id": {
+          "name": "CrowdSec-Instanz",
+          "description": "Nur nötig, wenn mehrere Instanzen eingerichtet sind."
+        },
+        "ip": {
+          "name": "IP-Adresse oder Bereich",
+          "description": "Einzelne Adresse oder Bereich in CIDR-Schreibweise."
+        }
+      }
+    },
+    "add_decision": {
+      "name": "Decision hinzufügen",
+      "description": "Setzt eine manuelle Sperre. Sie erscheint als neue Sperre mit Herkunft cscli.",
+      "fields": {
+        "config_entry_id": {
+          "name": "CrowdSec-Instanz",
+          "description": "Nur nötig, wenn mehrere Instanzen eingerichtet sind."
+        },
+        "ip": {
+          "name": "IP-Adresse oder Bereich",
+          "description": "Einzelne Adresse oder Bereich in CIDR-Schreibweise."
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Go-Dauer mit den Einheiten ms, s, m und h, z. B. 4h oder 90m. Tage werden nicht unterstützt."
+        },
+        "reason": {
+          "name": "Grund",
+          "description": "Notiz, die mit dem Alert gespeichert wird."
+        }
+      }
+    }
+  }
+}

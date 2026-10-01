@@ -1,0 +1,30 @@
+[
+  {
+    "id": 180,
+    "scenario": "manual 'range' from 'homeassistant'",
+    "created_at": "2026-10-01T14:02:00Z",
+    "machine_id": "homeassistant",
+    "message": "Range 2001:db8:aa::/64 performed 'manual 'range' from 'homeassistant''",
+    "source": {
+      "scope": "Range",
+      "value": "2001:db8:aa::/64"
+    },
+    "events_count": 12,
+    "events": [],
+    "capacity": 10,
+    "leakspeed": "10s",
+    "decisions": [
+      {
+        "id": 555300,
+        "origin": "cscli",
+        "type": "ban",
+        "scope": "Range",
+        "value": "2001:db8:aa::/64",
+        "duration": "23h59m",
+        "scenario": "manual 'range' from 'homeassistant'",
+        "simulated": false
+      }
+    ],
+    "simulated": false
+  }
+]
