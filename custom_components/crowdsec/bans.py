@@ -111,6 +111,15 @@ class AlertStats:
     total: int = 0
     by_country: dict[str, int] | None = None
     by_scenario: dict[str, int] | None = None
+    # Alle Agents, nicht nur die häufigsten; manuelle Sperren zählen nicht mit.
+    by_machine: dict[str, int] | None = None
+
+
+def _is_manual(alert: dict[str, Any]) -> bool:
+    """Von Hand gesetzt (cscli, Home Assistant, Web UI) statt von einem Agent erkannt."""
+    if str(alert.get("scenario") or "").startswith("manual "):
+        return True
+    return any(d.get("origin") == "cscli" for d in alert.get("decisions") or [])
 
 
 def summarize_alerts(alerts: list[dict[str, Any]], top: int = 5) -> AlertStats:
@@ -118,13 +127,17 @@ def summarize_alerts(alerts: list[dict[str, Any]], top: int = 5) -> AlertStats:
     unique = {a["id"]: a for a in alerts if "id" in a}
     countries: Counter[str] = Counter()
     scenarios: Counter[str] = Counter()
+    machines: Counter[str] = Counter()
     for alert in unique.values():
         if country := (alert.get("source") or {}).get("cn"):
             countries[country] += 1
         if scenario := alert.get("scenario"):
             scenarios[scenario] += 1
+        if (machine := alert.get("machine_id")) and not _is_manual(alert):
+            machines[machine] += 1
     return AlertStats(
         total=len(unique),
         by_country=dict(countries.most_common(top)),
         by_scenario=dict(scenarios.most_common(top)),
+        by_machine=dict(machines),
     )

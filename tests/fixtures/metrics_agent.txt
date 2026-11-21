@@ -1,0 +1,19 @@
+# HELP cs_info Information about Crowdsec.
+# TYPE cs_info gauge
+cs_info{version="v1.7.8"} 0
+# HELP cs_filesource_hits_total Total lines that were read.
+# TYPE cs_filesource_hits_total counter
+cs_filesource_hits_total{acquis_type="caddy",datasource_type="file",source="/var/log/caddy/access.log"} 1000
+cs_filesource_hits_total{acquis_type="caddy",datasource_type="file",source="/var/log/caddy/robben.log"} 234
+# HELP cs_parser_hits_ok_total Total events were successfully parsed.
+# TYPE cs_parser_hits_ok_total counter
+cs_parser_hits_ok_total{acquis_type="caddy",source="/var/log/caddy/access.log",type="file"} 990
+# HELP cs_parser_hits_ko_total Total events were unsuccessfully parsed.
+# TYPE cs_parser_hits_ko_total counter
+cs_parser_hits_ko_total{acquis_type="caddy",source="/var/log/caddy/access.log",type="file"} 10
+# HELP cs_appsec_reqs_total Total events processed by the Application Security Engine.
+# TYPE cs_appsec_reqs_total counter
+cs_appsec_reqs_total{appsec_engine="appsec",source="0.0.0.0:7422"} 80
+# HELP cs_appsec_block_total Total events blocked by the Application Security Engine.
+# TYPE cs_appsec_block_total counter
+cs_appsec_block_total{appsec_engine="appsec",source="0.0.0.0:7422"} 4

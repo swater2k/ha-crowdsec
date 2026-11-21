@@ -522,5 +522,11 @@ async def test_options_enable_controls(hass: HomeAssistant, config_entry, aiocli
         "scan_interval": 30,
         "control_unban": True,
         "control_ban": False,
+        "web_ui_url": "",
+        "metrics_url": "",
+        "agent_metrics": "",
+        "agent_timeout": 5,
+        "bouncer_timeout": 10,
+        "log_timeout": 1440,
     }
     assert config_entry.runtime_data.update_interval.total_seconds() == 30

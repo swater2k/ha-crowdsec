@@ -15,6 +15,8 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_VERIFY_SSL
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.data_entry_flow import section
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     BooleanSelector,
     NumberSelector,
@@ -27,23 +29,45 @@ from homeassistant.helpers.selector import (
 import voluptuous as vol
 
 from . import build_api
-from .api import CrowdSecAuthError, CrowdSecConnectionError, CrowdSecError, normalize_url
+from .api import (
+    CrowdSecAuthError,
+    CrowdSecConnectionError,
+    CrowdSecError,
+    async_fetch_metrics,
+    normalize_url,
+)
 from .const import (
+    CONF_AGENT_METRICS,
+    CONF_AGENT_TIMEOUT,
+    CONF_BOUNCER_TIMEOUT,
     CONF_CONTROL_BAN,
     CONF_CONTROL_UNBAN,
+    CONF_LOG_TIMEOUT,
     CONF_MACHINE_ID,
+    CONF_METRICS_URL,
     CONF_SCAN_INTERVAL,
+    CONF_WEB_UI_URL,
+    DEFAULT_AGENT_TIMEOUT,
+    DEFAULT_BOUNCER_TIMEOUT,
+    DEFAULT_LOG_TIMEOUT,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
+    SECTION_METRICS,
 )
+from .metrics import parse_agent_endpoints
 
 _LOGGER = logging.getLogger(__name__)
 
 _PASSWORD = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 # Hassfest verbietet URLs in Übersetzungen – das Beispiel kommt als Platzhalter.
 PLACEHOLDERS = {"example_url": "http://192.168.1.10:8080"}
+OPTION_PLACEHOLDERS = {
+    "example_metrics": "http://192.168.1.10:6060/metrics",
+    "example_agent": "caddy = http://192.168.1.20:6060/metrics",
+}
+_URL = TextSelector(TextSelectorConfig(type=TextSelectorType.URL))
 
 
 def _schema(defaults: Mapping[str, Any]) -> vol.Schema:
@@ -160,24 +184,88 @@ class CrowdSecConfigFlow(ConfigFlow, domain=DOMAIN):
         return CrowdSecOptionsFlow()
 
 
+def _is_url(value: str) -> bool:
+    parts = urlsplit(value)
+    return parts.scheme in ("http", "https") and bool(parts.hostname)
+
+
+def _minutes(minimum: int, maximum: int, step: int = 1) -> NumberSelector:
+    return NumberSelector(
+        NumberSelectorConfig(
+            min=minimum,
+            max=maximum,
+            step=step,
+            unit_of_measurement="min",
+            mode=NumberSelectorMode.BOX,
+        )
+    )
+
+
+def _suggested(value: Any) -> dict[str, Any]:
+    return {"suggested_value": value} if value not in (None, "") else {}
+
+
+async def _unreachable_metrics(
+    hass: HomeAssistant, metrics_url: str, agents: dict[str, str]
+) -> list[str]:
+    """Namen der Endpunkte, die keine CrowdSec-Metriken liefern."""
+    session = async_get_clientsession(hass)
+    targets = ([("LAPI", metrics_url)] if metrics_url else []) + list(agents.items())
+    failed: list[str] = []
+    for name, url in targets:
+        try:
+            await async_fetch_metrics(session, url)
+        except CrowdSecConnectionError:
+            failed.append(name)
+    return failed
+
+
 class CrowdSecOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
+        placeholders = {**OPTION_PLACEHOLDERS, "failed": ""}
+        values: dict[str, Any] = dict(self.config_entry.options)
         if user_input is not None:
-            return self.async_create_entry(
-                data={
-                    CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
-                    CONF_CONTROL_UNBAN: bool(user_input.get(CONF_CONTROL_UNBAN, False)),
-                    CONF_CONTROL_BAN: bool(user_input.get(CONF_CONTROL_BAN, False)),
-                }
-            )
-        opts = self.config_entry.options
+            metrics = user_input.get(SECTION_METRICS, {})
+            values = {
+                CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
+                CONF_CONTROL_UNBAN: bool(user_input.get(CONF_CONTROL_UNBAN, False)),
+                CONF_CONTROL_BAN: bool(user_input.get(CONF_CONTROL_BAN, False)),
+                CONF_WEB_UI_URL: (user_input.get(CONF_WEB_UI_URL) or "").strip(),
+                CONF_METRICS_URL: (metrics.get(CONF_METRICS_URL) or "").strip(),
+                CONF_AGENT_METRICS: (metrics.get(CONF_AGENT_METRICS) or "").strip(),
+                CONF_AGENT_TIMEOUT: int(metrics.get(CONF_AGENT_TIMEOUT, DEFAULT_AGENT_TIMEOUT)),
+                CONF_BOUNCER_TIMEOUT: int(
+                    metrics.get(CONF_BOUNCER_TIMEOUT, DEFAULT_BOUNCER_TIMEOUT)
+                ),
+                CONF_LOG_TIMEOUT: int(metrics.get(CONF_LOG_TIMEOUT, DEFAULT_LOG_TIMEOUT)),
+            }
+            agents: dict[str, str] = {}
+            if values[CONF_WEB_UI_URL] and not _is_url(values[CONF_WEB_UI_URL]):
+                errors["base"] = "invalid_web_ui_url"
+            elif values[CONF_METRICS_URL] and not _is_url(values[CONF_METRICS_URL]):
+                errors["base"] = "invalid_metrics_url"
+            else:
+                try:
+                    agents = parse_agent_endpoints(values[CONF_AGENT_METRICS])
+                except ValueError as err:
+                    errors["base"] = "invalid_agent_metrics"
+                    placeholders["failed"] = str(err)
+            if not errors and (
+                failed := await _unreachable_metrics(self.hass, values[CONF_METRICS_URL], agents)
+            ):
+                errors["base"] = "metrics_unreachable"
+                placeholders["failed"] = ", ".join(failed)
+            if not errors:
+                return self.async_create_entry(data=values)
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Required(
                         CONF_SCAN_INTERVAL,
-                        default=opts.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                        default=values.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
                     ): NumberSelector(
                         NumberSelectorConfig(
                             min=MIN_SCAN_INTERVAL,
@@ -188,11 +276,45 @@ class CrowdSecOptionsFlow(OptionsFlowWithReload):
                         )
                     ),
                     vol.Optional(
-                        CONF_CONTROL_UNBAN, default=opts.get(CONF_CONTROL_UNBAN, False)
+                        CONF_CONTROL_UNBAN, default=values.get(CONF_CONTROL_UNBAN, False)
                     ): BooleanSelector(),
                     vol.Optional(
-                        CONF_CONTROL_BAN, default=opts.get(CONF_CONTROL_BAN, False)
+                        CONF_CONTROL_BAN, default=values.get(CONF_CONTROL_BAN, False)
                     ): BooleanSelector(),
+                    vol.Optional(
+                        CONF_WEB_UI_URL, description=_suggested(values.get(CONF_WEB_UI_URL))
+                    ): _URL,
+                    vol.Optional(SECTION_METRICS, default={}): section(
+                        vol.Schema(
+                            {
+                                vol.Optional(
+                                    CONF_METRICS_URL,
+                                    description=_suggested(values.get(CONF_METRICS_URL)),
+                                ): _URL,
+                                vol.Optional(
+                                    CONF_AGENT_METRICS,
+                                    description=_suggested(values.get(CONF_AGENT_METRICS)),
+                                ): TextSelector(TextSelectorConfig(multiline=True)),
+                                vol.Required(
+                                    CONF_AGENT_TIMEOUT,
+                                    default=values.get(CONF_AGENT_TIMEOUT, DEFAULT_AGENT_TIMEOUT),
+                                ): _minutes(2, 60),
+                                vol.Required(
+                                    CONF_BOUNCER_TIMEOUT,
+                                    default=values.get(
+                                        CONF_BOUNCER_TIMEOUT, DEFAULT_BOUNCER_TIMEOUT
+                                    ),
+                                ): _minutes(2, 240),
+                                vol.Required(
+                                    CONF_LOG_TIMEOUT,
+                                    default=values.get(CONF_LOG_TIMEOUT, DEFAULT_LOG_TIMEOUT),
+                                ): _minutes(10, 10080, 10),
+                            }
+                        ),
+                        {"collapsed": not values.get(CONF_METRICS_URL)},
+                    ),
                 }
             ),
+            errors=errors,
+            description_placeholders=placeholders,
         )

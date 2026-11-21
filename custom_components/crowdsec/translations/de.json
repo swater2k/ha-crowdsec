@@ -59,24 +59,64 @@
     "step": {
       "init": {
         "title": "CrowdSec-Optionen",
-        "description": "Steuerfunktionen sind standardmäßig aus.",
+        "description": "Steuerfunktionen sind standardmäßig aus. Metriken sind optional und ergänzen Sensoren für Agents und Bouncer.",
         "data": {
           "scan_interval": "Abfrageintervall",
           "control_unban": "Steuerung: Sperren aufheben",
-          "control_ban": "Steuerung: Sperren setzen"
+          "control_ban": "Steuerung: Sperren setzen",
+          "web_ui_url": "Adresse der Web UI"
         },
         "data_description": {
           "scan_interval": "Wie oft die aktiven Sperren gelesen werden. Neue Sperren werden mit dieser Verzögerung gemeldet.",
           "control_unban": "Schaltet die Aktion frei, Decisions per IP-Adresse oder Bereich zu löschen.",
-          "control_ban": "Schaltet die Aktion frei, eine manuelle Sperre zu setzen."
+          "control_ban": "Schaltet die Aktion frei, eine manuelle Sperre zu setzen.",
+          "web_ui_url": "Optional. Erscheint als Link am CrowdSec-Gerät, z. B. die Adresse der CrowdSec Web UI."
+        },
+        "sections": {
+          "metrics": {
+            "name": "Metriken",
+            "description": "Prometheus-Metriken der LAPI und der Agents. Sie werden ohne Anmeldung gelesen, gib sie in der Firewall also nur für Home Assistant frei.",
+            "data": {
+              "metrics_url": "LAPI-Metriken",
+              "agent_metrics": "Agent-Metriken",
+              "agent_timeout": "Agent offline nach",
+              "bouncer_timeout": "Bouncer inaktiv nach",
+              "log_timeout": "Keine Logzeilen nach"
+            },
+            "data_description": {
+              "metrics_url": "Metrik-Endpunkt des LAPI-Hosts, z. B. {example_metrics}. Ergänzt den letzten Heartbeat jedes Agents, die Aktivität jedes Bouncers und die Größe der Blocklisten.",
+              "agent_metrics": "Optional, ein Agent je Zeile als Name = Adresse, z. B. {example_agent}. Nimm den Machine-Namen, dann landen die Sensoren am Gerät des Agents. Ergänzt gelesene und nicht erkannte Logzeilen sowie AppSec-Zähler.",
+              "agent_timeout": "Agents senden jede Minute einen Heartbeat.",
+              "bouncer_timeout": "Zeit ohne Anfrage des Bouncers an die LAPI.",
+              "log_timeout": "Zeit ohne neue Logzeile. Manche Logs sind stundenlang still, z. B. ein Anmelde-Log."
+            }
+          }
         }
       }
+    },
+    "error": {
+      "invalid_web_ui_url": "Die Adresse der Web UI ist keine gültige http- oder https-Adresse.",
+      "invalid_metrics_url": "Die Adresse der LAPI-Metriken ist keine gültige http- oder https-Adresse.",
+      "invalid_agent_metrics": "Ungültige oder doppelte Zeile in den Agent-Metriken: {failed}. Erwartet z. B.: {example_agent}",
+      "metrics_unreachable": "Keine CrowdSec-Metriken von: {failed}. Prüfe listen_addr im Abschnitt prometheus und die Firewall."
     }
   },
   "entity": {
     "binary_sensor": {
       "lapi_reachable": {
         "name": "LAPI erreichbar"
+      },
+      "metrics_reachable": {
+        "name": "Metriken erreichbar"
+      },
+      "agent_online": {
+        "name": "Online"
+      },
+      "reading_logs": {
+        "name": "Liest Logs"
+      },
+      "bouncer_active": {
+        "name": "Aktiv"
       }
     },
     "sensor": {
@@ -91,6 +131,39 @@
       },
       "last_ban": {
         "name": "Letzte Sperre"
+      },
+      "blocklist_decisions": {
+        "name": "Blocklist-Einträge"
+      },
+      "blocklist_last_pull": {
+        "name": "Letzter Blocklist-Abruf"
+      },
+      "version": {
+        "name": "Version"
+      },
+      "agent_alerts_24h": {
+        "name": "Alerts letzte 24 Stunden"
+      },
+      "last_heartbeat": {
+        "name": "Letzter Heartbeat"
+      },
+      "lines_read": {
+        "name": "Gelesene Logzeilen"
+      },
+      "lines_unparsed": {
+        "name": "Nicht erkannte Logzeilen"
+      },
+      "last_log_line": {
+        "name": "Letzte Logzeile"
+      },
+      "appsec_requests": {
+        "name": "AppSec-Anfragen"
+      },
+      "appsec_blocks": {
+        "name": "AppSec-Blockierungen"
+      },
+      "bouncer_last_pull": {
+        "name": "Letzter Abruf"
       }
     },
     "event": {
@@ -152,6 +225,17 @@
           "name": "Grund",
           "description": "Notiz, die mit dem Alert gespeichert wird."
         }
+      }
+    }
+  },
+  "selector": {
+    "duration": {
+      "options": {
+        "1h": "1 Stunde",
+        "4h": "4 Stunden",
+        "24h": "1 Tag",
+        "168h": "1 Woche",
+        "720h": "30 Tage"
       }
     }
   }

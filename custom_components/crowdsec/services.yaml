@@ -25,7 +25,15 @@ add_decision:
       default: "4h"
       example: "24h"
       selector:
-        text:
+        select:
+          custom_value: true
+          translation_key: duration
+          options:
+            - "1h"
+            - "4h"
+            - "24h"
+            - "168h"
+            - "720h"
     reason:
       default: "Home Assistant"
       example: "Manual block"

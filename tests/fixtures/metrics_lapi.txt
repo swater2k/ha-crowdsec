@@ -1,0 +1,24 @@
+# HELP cs_info Information about Crowdsec.
+# TYPE cs_info gauge
+cs_info{version="v1.7.8-debian-pragmatic-amd64-f209766e"} 0
+# HELP cs_machines_last_heartbeat_timestamp Unix timestamp of a machine's last heartbeat.
+# TYPE cs_machines_last_heartbeat_timestamp gauge
+cs_machines_last_heartbeat_timestamp{machine="caddy-agent"} 1790863170
+cs_machines_last_heartbeat_timestamp{machine="netbird-traefik"} 1790862600
+# HELP cs_lapi_bouncer_requests_total Number of calls to each route per method grouped by bouncers.
+# TYPE cs_lapi_bouncer_requests_total counter
+cs_lapi_bouncer_requests_total{bouncer="caddy",method="GET",route="/v1/decisions/stream"} 1520
+cs_lapi_bouncer_requests_total{bouncer="traefik-netbird",method="GET",route="/v1/decisions/stream"} 300
+cs_lapi_bouncer_requests_total{bouncer="traefik-netbird",method="HEAD",route="/v1/decisions/stream"} 12
+# HELP cs_active_decisions Number of active decisions.
+# TYPE cs_active_decisions gauge
+cs_active_decisions{action="ban",origin="CAPI",reason="crowdsecurity/http-probing"} 9000
+cs_active_decisions{action="ban",origin="CAPI",reason="crowdsecurity/ssh-bf"} 6000
+cs_active_decisions{action="ban",origin="lists",reason="firehol_cruzit_web_attacks"} 500
+cs_active_decisions{action="ban",origin="crowdsec",reason="crowdsecurity/http-probing"} 3
+# HELP cs_capi_last_pull_timestamp Unix timestamp of the last successful decisions stream pull from the CAPI.
+# TYPE cs_capi_last_pull_timestamp gauge
+cs_capi_last_pull_timestamp 1790856000
+# HELP cs_lapi_route_requests_total Number of calls to each route per method.
+# TYPE cs_lapi_route_requests_total counter
+cs_lapi_route_requests_total{method="GET",route="/v1/heartbeat"} 4242

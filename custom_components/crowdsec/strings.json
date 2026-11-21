@@ -59,24 +59,64 @@
     "step": {
       "init": {
         "title": "CrowdSec options",
-        "description": "Control functions are off by default.",
+        "description": "Control functions are off by default. Metrics are optional and add sensors for agents and bouncers.",
         "data": {
           "scan_interval": "Polling interval",
           "control_unban": "Control: lift bans",
-          "control_ban": "Control: set bans"
+          "control_ban": "Control: set bans",
+          "web_ui_url": "Web UI address"
         },
         "data_description": {
           "scan_interval": "How often active bans are read. New bans are reported with this delay.",
           "control_unban": "Enables the action to delete decisions by IP address or range.",
-          "control_ban": "Enables the action to add a manual ban."
+          "control_ban": "Enables the action to add a manual ban.",
+          "web_ui_url": "Optional. Shown as link on the CrowdSec device, for example the address of CrowdSec Web UI."
+        },
+        "sections": {
+          "metrics": {
+            "name": "Metrics",
+            "description": "Prometheus metrics of the LAPI and the agents. They are read without authentication, so only allow Home Assistant in the firewall.",
+            "data": {
+              "metrics_url": "LAPI metrics",
+              "agent_metrics": "Agent metrics",
+              "agent_timeout": "Agent offline after",
+              "bouncer_timeout": "Bouncer inactive after",
+              "log_timeout": "No log lines after"
+            },
+            "data_description": {
+              "metrics_url": "Metrics endpoint of the LAPI host, for example {example_metrics}. Adds the last heartbeat of every agent, the activity of every bouncer and the size of the blocklists.",
+              "agent_metrics": "Optional, one agent per line as name = address, for example {example_agent}. Use the machine name, then the sensors join the agent device. Adds log lines read, unparsed lines and AppSec counters.",
+              "agent_timeout": "Agents send a heartbeat every minute.",
+              "bouncer_timeout": "Time without any request of the bouncer to the LAPI.",
+              "log_timeout": "Time without a new log line. Some logs are quiet for hours, for example an authentication log."
+            }
+          }
         }
       }
+    },
+    "error": {
+      "invalid_web_ui_url": "The web UI address is not a valid http or https address.",
+      "invalid_metrics_url": "The LAPI metrics address is not a valid http or https address.",
+      "invalid_agent_metrics": "Invalid or duplicate line in the agent metrics: {failed}. Expected for example: {example_agent}",
+      "metrics_unreachable": "No CrowdSec metrics from: {failed}. Check listen_addr in the prometheus section and the firewall."
     }
   },
   "entity": {
     "binary_sensor": {
       "lapi_reachable": {
         "name": "LAPI reachable"
+      },
+      "metrics_reachable": {
+        "name": "Metrics reachable"
+      },
+      "agent_online": {
+        "name": "Online"
+      },
+      "reading_logs": {
+        "name": "Reading logs"
+      },
+      "bouncer_active": {
+        "name": "Active"
       }
     },
     "sensor": {
@@ -91,6 +131,39 @@
       },
       "last_ban": {
         "name": "Last ban"
+      },
+      "blocklist_decisions": {
+        "name": "Blocklist decisions"
+      },
+      "blocklist_last_pull": {
+        "name": "Last blocklist pull"
+      },
+      "version": {
+        "name": "Version"
+      },
+      "agent_alerts_24h": {
+        "name": "Alerts last 24 hours"
+      },
+      "last_heartbeat": {
+        "name": "Last heartbeat"
+      },
+      "lines_read": {
+        "name": "Log lines read"
+      },
+      "lines_unparsed": {
+        "name": "Unparsed log lines"
+      },
+      "last_log_line": {
+        "name": "Last log line"
+      },
+      "appsec_requests": {
+        "name": "AppSec requests"
+      },
+      "appsec_blocks": {
+        "name": "AppSec blocks"
+      },
+      "bouncer_last_pull": {
+        "name": "Last pull"
       }
     },
     "event": {
@@ -152,6 +225,17 @@
           "name": "Reason",
           "description": "Note stored with the alert."
         }
+      }
+    }
+  },
+  "selector": {
+    "duration": {
+      "options": {
+        "1h": "1 hour",
+        "4h": "4 hours",
+        "24h": "1 day",
+        "168h": "1 week",
+        "720h": "30 days"
       }
     }
   }

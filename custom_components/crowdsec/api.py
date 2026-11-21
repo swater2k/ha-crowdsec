@@ -11,10 +11,12 @@ import aiohttp
 
 from .bans import parse_time
 from .const import DEFAULT_PORT, USER_AGENT
+from .prometheus import Sample, parse
 
 TIMEOUT = aiohttp.ClientTimeout(total=15)
 # Token kurz vor Ablauf erneuern, damit kein Abruf mit einem toten Token startet.
 TOKEN_MARGIN = timedelta(seconds=60)
+METRICS_TIMEOUT = aiohttp.ClientTimeout(total=10)
 
 
 class CrowdSecError(Exception):
@@ -167,3 +169,19 @@ class CrowdSecApi:
             "stop_at": now,
         }
         await self._request("POST", "/v1/alerts", json=[alert])
+
+
+async def async_fetch_metrics(session: aiohttp.ClientSession, url: str) -> list[Sample]:
+    """Liest einen Prometheus-Endpunkt (ohne Anmeldung, wie ``cscli metrics``)."""
+    try:
+        async with session.get(
+            url, headers={"User-Agent": USER_AGENT}, timeout=METRICS_TIMEOUT
+        ) as resp:
+            resp.raise_for_status()
+            text = await resp.text()
+    except (aiohttp.ClientError, TimeoutError, UnicodeDecodeError) as err:
+        raise CrowdSecConnectionError(f"{url}: {err}") from err
+    samples = parse(text)
+    if not any(s.name.startswith("cs_") for s in samples):
+        raise CrowdSecConnectionError(f"{url}: no CrowdSec metrics")
+    return samples
