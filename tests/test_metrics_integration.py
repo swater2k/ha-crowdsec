@@ -47,6 +47,17 @@ async def _refresh(hass: HomeAssistant, entry) -> None:
     await hass.async_block_till_done()
 
 
+def _device(hass: HomeAssistant, entry, identifier: str) -> dr.DeviceEntry:
+    """Neuere Versionen suchen je Konfigurationseintrag, ältere nur über die Kennung."""
+    devices = dr.async_get(hass)
+    if hasattr(devices, "async_get_device_by_identifier"):
+        device = devices.async_get_device_by_identifier((DOMAIN, identifier), entry.entry_id)
+    else:
+        device = devices.async_get_device(identifiers={(DOMAIN, identifier)})
+    assert device is not None, identifier
+    return device
+
+
 def _state(hass: HomeAssistant, entity_id: str) -> str:
     state = hass.states.get(entity_id)
     assert state is not None, entity_id
@@ -105,12 +116,9 @@ async def test_metric_entities(hass: HomeAssistant, config_entry, aioclient_mock
     assert _state(hass, "binary_sensor.crowdsec_bouncer_traefik_netbird_active") == "on"
 
     # Geräte: Agents und Bouncer hängen an der LAPI, die LAPI verlinkt die Web UI.
-    devices = dr.async_get(hass)
-    main = devices.async_get_device(identifiers={(DOMAIN, config_entry.entry_id)})
+    main = _device(hass, config_entry, config_entry.entry_id)
     assert main.configuration_url == "https://crowdsec.example.org"
-    agent = devices.async_get_device(
-        identifiers={(DOMAIN, f"{config_entry.entry_id}_agent_caddy-agent")}
-    )
+    agent = _device(hass, config_entry, f"{config_entry.entry_id}_agent_caddy-agent")
     assert agent.name == "CrowdSec Agent caddy-agent"
     assert agent.via_device_id == main.id
 

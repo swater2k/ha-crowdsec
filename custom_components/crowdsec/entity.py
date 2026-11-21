@@ -34,15 +34,27 @@ def main_device(entry: CrowdSecConfigEntry) -> DeviceInfo:
     return info
 
 
-def sub_device(entry: CrowdSecConfigEntry, kind: str, name: str) -> DeviceInfo:
-    return DeviceInfo(
+# Ab Home Assistant 2026.10 verweist ein Gerät per Geräte-ID auf sein übergeordnetes
+# Gerät (``via_device_id``); ``via_device`` mit Kennung gilt dort als veraltet.
+_VIA_DEVICE_ID = "via_device_id" in DeviceInfo.__optional_keys__
+
+
+def sub_device(
+    entry: CrowdSecConfigEntry, kind: str, name: str, main_device_id: str | None
+) -> DeviceInfo:
+    info = DeviceInfo(
         identifiers={(DOMAIN, f"{entry.entry_id}_{kind}_{name}")},
         name=f"CrowdSec {'Agent' if kind == AGENT else 'Bouncer'} {name}",
         manufacturer="CrowdSec",
         model="Security Engine" if kind == AGENT else "Bouncer",
         entry_type=DeviceEntryType.SERVICE,
-        via_device=(DOMAIN, entry.entry_id),
     )
+    if _VIA_DEVICE_ID:
+        if main_device_id:
+            info["via_device_id"] = main_device_id  # type: ignore[typeddict-unknown-key]
+    else:
+        info["via_device"] = (DOMAIN, entry.entry_id)
+    return info
 
 
 class CrowdSecEntity(StableEntityIdMixin, CoordinatorEntity[CrowdSecCoordinator]):
@@ -75,7 +87,7 @@ class CrowdSecSubEntity(StableEntityIdMixin, CoordinatorEntity[CrowdSecCoordinat
         self._name = name
         self._attr_unique_id = f"{entry.entry_id}_{kind}_{name}_{key}"
         self._id_prefix = f"{DOMAIN} {kind} {name}"
-        self._attr_device_info = sub_device(entry, kind, name)
+        self._attr_device_info = sub_device(entry, kind, name, coordinator.main_device_id)
 
 
 def async_setup_dynamic(

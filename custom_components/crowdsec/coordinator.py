@@ -82,6 +82,7 @@ class CrowdSecCoordinator(DataUpdateCoordinator[CrowdSecData]):
             ),
         )
         self.api = api
+        self.main_device_id: str | None = None
         # None = noch kein Abruf; der erste Abruf löst keine Ereignisse aus, sonst
         # meldet jeder Neustart von Home Assistant alle aktiven Sperren als neu.
         self._seen: set[tuple[str, str]] | None = None
