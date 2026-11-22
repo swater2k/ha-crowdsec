@@ -101,6 +101,10 @@ def summarize_agent(samples: list[Sample]) -> AgentMetrics:
             appsec_requests = (appsec_requests or 0.0) + sample.value
         elif sample.name == "cs_appsec_block_total":
             appsec_blocks = (appsec_blocks or 0.0) + sample.value
+    if by_source:
+        # Die Parser-Zähler erscheinen erst mit dem ersten Treffer bzw. Fehlschlag.
+        parsed = parsed or 0.0
+        unparsed = unparsed or 0.0
     if appsec_requests is not None and appsec_blocks is None:
         appsec_blocks = 0.0  # der Zähler erscheint erst mit der ersten Blockierung
     return AgentMetrics(

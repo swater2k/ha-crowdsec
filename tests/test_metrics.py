@@ -75,6 +75,16 @@ def test_summarize_agent() -> None:
     assert metrics.appsec_blocks == 4
 
 
+def test_summarize_agent_without_parser_failures() -> None:
+    """Ohne einen einzigen Fehlschlag fehlt cs_parser_hits_ko_total – das ist 0, nicht unbekannt."""
+    metrics = summarize_agent(
+        parse('cs_filesource_hits_total{source="/var/log/authelia.log"} 19\n')
+    )
+    assert metrics.lines_read == 19
+    assert metrics.lines_parsed == 0
+    assert metrics.lines_unparsed == 0
+
+
 def test_summarize_agent_appsec_without_blocks() -> None:
     metrics = summarize_agent(parse('cs_appsec_reqs_total{source="x",appsec_engine="a"} 5\n'))
     assert metrics.appsec_requests == 5
