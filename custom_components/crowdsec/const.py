@@ -11,7 +11,7 @@ DOMAIN: Final = "crowdsec"
 # auch bei richtigem Passwort. Der Standard-Agent von Home Assistant
 # („HomeAssistant/x aiohttp/y Python/z“) fällt dadurch durch. Die Version muss
 # zur manifest.json passen (ein Test prüft das).
-USER_AGENT: Final = "ha-crowdsec/0.2.1"
+USER_AGENT: Final = "ha-crowdsec/0.2.2"
 
 CONF_MACHINE_ID: Final = "machine_id"
 CONF_SCAN_INTERVAL: Final = "scan_interval"

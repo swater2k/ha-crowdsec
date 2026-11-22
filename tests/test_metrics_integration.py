@@ -11,6 +11,7 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
 import pytest
 
+from custom_components.crowdsec import async_remove_config_entry_device
 from custom_components.crowdsec.const import DOMAIN
 
 from .conftest import mock_api
@@ -261,3 +262,35 @@ async def test_options_metrics_errors(
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": error}
     assert result["description_placeholders"]["failed"] == failed
+
+
+@pytest.mark.parametrize("options", [{"scan_interval": 60, "metrics_url": LAPI_METRICS}])
+async def test_remove_stale_device(
+    hass: HomeAssistant, config_entry, aioclient_mock, freezer
+) -> None:
+    """Ein umbenannter Agent lässt sich löschen, aktive Geräte und die LAPI nicht."""
+    freezer.move_to("2026-10-01T14:00:00+00:00")
+    mock_api(aioclient_mock)
+    _mock_metrics(aioclient_mock)
+    await _setup(hass, config_entry)
+
+    # netbird-traefik meldet sich nicht mehr und hat keine Alerts mehr.
+    lapi = "\n".join(
+        line
+        for line in (FIXTURES / "metrics_lapi.txt").read_text().splitlines()
+        if "netbird-traefik" not in line
+    )
+    mock_api(aioclient_mock, active=[])
+    _mock_metrics(aioclient_mock, lapi=lapi)
+    freezer.tick(timedelta(minutes=6))  # Statistik wird nur alle 5 Minuten neu geholt
+    await _refresh(hass, config_entry)
+
+    async def removable(identifier: str) -> bool:
+        device = _device(hass, config_entry, identifier)
+        return await async_remove_config_entry_device(hass, config_entry, device)
+
+    entry_id = config_entry.entry_id
+    assert await removable(f"{entry_id}_agent_netbird-traefik")
+    assert not await removable(f"{entry_id}_agent_caddy-agent")
+    assert not await removable(f"{entry_id}_bouncer_caddy")
+    assert not await removable(entry_id)

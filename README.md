@@ -212,7 +212,8 @@ response_variable: result
 - **A ban is not reported**: bans from the community blocklist are never reported. Everything else shows up within one polling interval.
 - **"No CrowdSec metrics from: …"**: the endpoint is not reachable or answers without CrowdSec metrics. Check `listen_addr`, the published port of a Docker agent and the firewall rule for port `6060`.
 - **An agent shows offline right after a LAPI restart**: the LAPI keeps heartbeats in memory only; the agent comes back with its next heartbeat within a minute.
-- **An extra agent device appears**: every machine that sends heartbeats or creates alerts gets a device. Disable or delete devices you do not need.
+- **An extra agent device appears**: every machine that sends heartbeats or creates alerts gets a device. Disable the ones you do not need.
+- **A renamed or removed agent or bouncer is still listed**: once the LAPI no longer reports it, delete the device on its device page. Devices the LAPI still reports cannot be deleted, they would come back.
 - **Diagnostics**: Settings → Devices & services → CrowdSec → ⋮ → Download diagnostics. URL, machine ID, password and all addresses are redacted.
 
 ```yaml

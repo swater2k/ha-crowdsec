@@ -51,5 +51,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: CrowdSecConfigEntry) ->
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: CrowdSecConfigEntry, device: dr.DeviceEntry
+) -> bool:
+    """Agents und Bouncer, die nicht mehr auftauchen, lassen sich in der UI löschen.
+
+    Das Gerät der LAPI selbst und alles, was die LAPI gerade noch meldet, nicht –
+    das würde beim nächsten Neustart ohnehin wieder angelegt.
+    """
+    return not any(
+        domain == DOMAIN and entry.runtime_data.is_current(identifier)
+        for domain, identifier in device.identifiers
+    )
+
+
 def option_enabled(entry: CrowdSecConfigEntry, option: str) -> bool:
     return bool(entry.options.get(option, False))

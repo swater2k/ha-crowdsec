@@ -183,6 +183,31 @@ class CrowdSecCoordinator(DataUpdateCoordinator[CrowdSecData]):
                 self.bouncer_activity.update(bouncer, total, now)
         return lapi_metrics, agent_metrics
 
+    def is_current(self, identifier: str) -> bool:
+        """Meldet die LAPI das Gerät mit dieser Kennung gerade (noch)?
+
+        Maßgeblich ist der letzte Abruf, nicht der gemerkte Stand: ein umbenannter
+        oder gelöschter Agent soll sich entfernen lassen, obwohl sein letzter
+        Heartbeat noch im Speicher liegt.
+        """
+        entry_id = self.config_entry.entry_id
+        if identifier == entry_id:
+            return True
+        data = self.data
+        if data is None:
+            return True  # vor dem ersten Abruf nichts freigeben
+        agents = set(data.stats.by_machine or {}) | set(data.agent_metrics)
+        bouncers: set[str] = set()
+        if data.lapi_metrics is not None:
+            agents |= set(data.lapi_metrics.heartbeats)
+            bouncers = set(data.lapi_metrics.bouncer_requests)
+        prefix_agent, prefix_bouncer = f"{entry_id}_agent_", f"{entry_id}_bouncer_"
+        if identifier.startswith(prefix_agent):
+            return identifier.removeprefix(prefix_agent) in agents
+        if identifier.startswith(prefix_bouncer):
+            return identifier.removeprefix(prefix_bouncer) in bouncers
+        return False
+
     def agent_online(self, machine: str) -> bool | None:
         if not self.metrics_url:
             return None
